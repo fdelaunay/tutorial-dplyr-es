@@ -52,15 +52,66 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 
 
-<div id="web" class="section level1">
-<h1>Web</h1>
-<p>Los datos estàn en la pagina [<a href="http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403">http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403</a>].</p>
+<div id="como-pillar-los-datos" class="section level1">
+<h1>Como pillar los datos</h1>
+<p>Los datos estàn en la pagina: <a href="http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403">http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403</a>.</p>
+<div id="las-tarjetas" class="section level3">
+<h3>las tarjetas</h3>
+<p>Base a esta pagina hemos creado con <a href="https://www.libreoffice.org/">libreoffice</a> un <em>.csv</em> que lista las tarjetas. La descargamos de <a href="https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data">github</a> gracías a la función <code>getURL</code> del paquete <code>RCurl</code>.</p>
+<blockquote>
+<p>Hay que tener un librería SSL instalada junto con Curl porque <code>github</code> pregunta por esta tipo de identificación (http<strong>s</strong>)</p>
+</blockquote>
+<pre class="r"><code># install.packages(RCurl)
+library(RCurl)
+
+CSV &lt;- getURL(&quot;https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/tarjetas.csv&quot;, ssl.verifypeer = FALSE, useragent = &quot;R&quot;)
+
+tarjetas &lt;- read.csv(text=CSV)</code></pre>
 </div>
-<div id="descarga" class="section level1">
-<h1>Descarga</h1>
+<div id="los-movimientos" class="section level3">
+<h3>los movimientos</h3>
+<p>Vamos a descargar los movimientos asociados a cada tarjeta. Leemos el <em>.xlsx</em> con el paquete <code>gdata</code>.</p>
+<pre class="r"><code>#install.packages(&quot;gdata&quot;)
+library(&quot;gdata&quot;)
+
+# inicializamos una lista donde guardaremos los movimientos
+descargas &lt;- list()
+
+# creamos una función que, dado una tarjeta, devuelve los movimientos
+get_xlsx &lt;- function(tarjeta){
+  message(paste(&quot;# tratando fichero:&quot;, tarjeta$fichero))
+  
+  # formamos la URL
+  url &lt;- paste(&quot;http://www.cuartopoder.es/multimedia/files/2014/10&quot;, tarjeta$fichero, sep=&quot;/&quot;)
+  
+  # descargamos el .xlsx y lo transformamos en una data.frame
+  mov = read.xls(url, sheet = 1, header = TRUE)
+  
+  # removemos la lineas sin gastos (últimas dos filas)
+  # y cogemos las primeras 10 columnas (unos ficheros tienen 11)
+  mov &lt;- subset(mov, NIF != '')[,1:10]
+  
+  # añadimos el campo `tarjeta`
+  mov$tarjeta &lt;- tarjeta$id
+    
+  mov
+}
+
+# plyr is mejor para trabajar con listas
+library(&quot;plyr&quot;)
+descargas &lt;- dlply(tarjetas, .(id), get_xlsx)</code></pre>
+<p>Tenemos una lista de <em>data.frame</em>. Las unimos en una sola <em>data.frame</em>. Utilizamos la función <code>rbindlis</code> del paquete <code>data.table</code>:</p>
+<pre class="r"><code>#install.packages(&quot;data.table&quot;)
+library(&quot;data.table&quot;)
+movimientos &lt;- rbindlist(descargas)</code></pre>
+<p><em>Nota: que esta función bastante más rápido que un simple <code>do.call</code>:</em></p>
+<pre class="r"><code>system.time({do.call(rbind, descargas)})</code></pre>
+<pre><code>##    user  system elapsed 
+##   1.991   0.013   2.018</code></pre>
+<pre class="r"><code>system.time({rbindlist(descargas)})</code></pre>
+<pre><code>##    user  system elapsed 
+##   0.183   0.001   0.185</code></pre>
 </div>
-<div id="aqui-pillaremos-los-datos-internet-y-les-agruparemos-en-un-solo-dato" class="section level1">
-<h1>aqui pillaremos los datos internet y les agruparemos en un solo dato</h1>
 </div>
 
 

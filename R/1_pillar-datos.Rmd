@@ -1,1 +1,82 @@
-#aqui pillaremos los datos internet y les agruparemos en un solo dato
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE)
+```
+
+Como pillar los datos
+=====================
+
+Los datos estàn en la pagina: http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403.
+
+### las tarjetas
+Base a esta pagina hemos creado con [libreoffice](https://www.libreoffice.org/) un *.csv* que lista las tarjetas. La descargamos de [github](https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data) gracías a la función `getURL` del paquete `RCurl`.
+
+> Hay que tener un librería SSL instalada junto con Curl porque `github` pregunta por esta tipo de identificación (http**s**)
+
+
+```{r}
+# install.packages(RCurl)
+library(RCurl)
+
+CSV <- getURL("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/tarjetas.csv", ssl.verifypeer = FALSE, useragent = "R")
+
+tarjetas <- read.csv(text=CSV)
+
+```
+
+### los movimientos
+
+Vamos a descargar los movimientos asociados a cada tarjeta. Leemos el *.xlsx* con el paquete `gdata`.
+
+```{r, message=FALSE, cache=TRUE}
+#install.packages("gdata")
+library("gdata")
+
+# inicializamos una lista donde guardaremos los movimientos
+descargas <- list()
+
+# creamos una función que, dado una tarjeta, devuelve los movimientos
+get_xlsx <- function(tarjeta){
+  message(paste("# tratando fichero:", tarjeta$fichero))
+  
+  # formamos la URL
+  url <- paste("http://www.cuartopoder.es/multimedia/files/2014/10", tarjeta$fichero, sep="/")
+  
+  # descargamos el .xlsx y lo transformamos en una data.frame
+  mov = read.xls(url, sheet = 1, header = TRUE)
+  
+  # removemos la lineas sin gastos (últimas dos filas)
+  # y cogemos las primeras 10 columnas (unos ficheros tienen 11)
+  mov <- subset(mov, NIF != '')[,1:10]
+  
+  # añadimos el campo `tarjeta`
+  mov$tarjeta <- tarjeta$id
+    
+  mov
+}
+
+# plyr is mejor para trabajar con listas
+library("plyr")
+descargas <- dlply(tarjetas, .(id), get_xlsx)
+
+```
+
+
+Tenemos una lista de *data.frame*. Las unimos en una sola *data.frame*. Utilizamos la función `rbindlis` del paquete `data.table`:
+
+```{r}
+#install.packages("data.table")
+library("data.table")
+movimientos <- rbindlist(descargas)
+```
+
+*Nota: que esta función bastante más rápido que un simple `do.call`:*
+
+```{r, warning=FALSE}
+system.time({do.call(rbind, descargas)})
+system.time({rbindlist(descargas)})
+```
+
+
+
+
+
