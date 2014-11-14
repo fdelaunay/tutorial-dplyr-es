@@ -14,6 +14,11 @@ pero tambíen para aprender:
 
 ## Programa
 
+### 0. Entender como funcionan las **data.table**s
+
+Como lo presenta su autor, Hadley Wickham, **dplyr** es la *nueva* iteración del paquete **plyr**. 
+
+
 ### 1. Pillar y organisar los datos
 
 Los datos que serviran de base al tutorial son los famosos gastos de la [tarjetas *black*](https://es.wikipedia.org/wiki/Caja_Madrid#Caso_de_las_Tarjetas_.22opacas.22) de *Caja Madrid*
