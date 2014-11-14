@@ -9,19 +9,29 @@ Tutorial en español para:
  
 pero tambíen para aprender:
 
+ - conceptos bases de **dplyr** y las **data.tables**
  - como trabajar en grupo usando **github**
  - como organisar (**tidy**) datos 
 
 ## Programa
 
-### 0. Entender como funcionan las **data.table**s
+### 0. Entender como funcionan **dplyr** y las **data.table**s
 
-Como lo presenta su autor, Hadley Wickham, **dplyr** es la *nueva* iteración del paquete **plyr**. 
+Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/dplyr)** es la *nueva* iteración del paquete **plyr**, enfocado a las **data.frames**, con 3 objectivos:
+
+* identificar cual son las manipulaciones más importantes para analisar datos y hacerlas faciles con R.
+
+* escribir las partes-llaves en [C++](http://www.rcpp.org/) para manipular los datos en memoria muy rapidamente.
+
+* usar las misma interace para trabajar donde sea los datos: data frame, data table o database.
+
+
 
 
 ### 1. Pillar y organisar los datos
 
-Los datos que serviran de base al tutorial son los famosos gastos de la [tarjetas *black*](https://es.wikipedia.org/wiki/Caja_Madrid#Caso_de_las_Tarjetas_.22opacas.22) de *Caja Madrid*
+Los datos que serviran de base al tutorial son los famosos gastos de la [tarjetas *black*](https://es.wikipedia.org/wiki/Caja_Madrid#Caso_de_las_Tarjetas_.22opacas.22) de *Caja Madrid*.
+
 
 ### 2. Analisar los datos gracias a **dplyr**
 
