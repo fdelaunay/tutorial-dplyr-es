@@ -54,22 +54,29 @@ if (window.hljs && document.readyState && document.readyState === "complete") {
 
 <div id="como-pillar-los-datos" class="section level1">
 <h1>Como pillar los datos</h1>
-<p>Los datos estàn en la pagina: <a href="http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403">http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403</a>.</p>
+<p>Los datos están en la pagina: <a href="http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403">http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403</a>.</p>
 <div id="las-tarjetas" class="section level3">
-<h3>las tarjetas</h3>
-<p>Base a esta pagina hemos creado con <a href="https://www.libreoffice.org/">libreoffice</a> un <em>.csv</em> que lista las tarjetas. La descargamos de <a href="https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data">github</a> gracías a la función <code>getURL</code> del paquete <code>RCurl</code>.</p>
-<blockquote>
-<p>Hay que tener un librería SSL instalada junto con Curl porque <code>github</code> pregunta por esta tipo de identificación (http<strong>s</strong>)</p>
-</blockquote>
+<h3>Las tarjetas</h3>
+<p>Base a esta pagina hemos creado con <a href="https://www.libreoffice.org/">libreoffice</a> un <em>.csv</em> que lista las tarjetas. La descargamos de <a href="https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data">github</a> gracias a la función <code>getURL</code> del paquete <code>RCurl</code>.</p>
+<p><em>Nota: Hay que tener un librería SSL instalada junto con Curl porque <code>github</code> pregunta por esta tipo de identificación (http<strong>s</strong>)</em></p>
 <pre class="r"><code># install.packages(RCurl)
 library(RCurl)
 
-CSV &lt;- getURL(&quot;https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/tarjetas.csv&quot;, ssl.verifypeer = FALSE, useragent = &quot;R&quot;)
+CSV &lt;- getURL(&quot;https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/tarjetas.csv&quot;
+              , ssl.verifypeer = FALSE, useragent = &quot;R&quot;)
 
 tarjetas &lt;- read.csv(text=CSV)</code></pre>
 </div>
+<div id="las-personas" class="section level3">
+<h3>Las personas</h3>
+<p>Descargamos e importamos el fichero <em>.csv</em> que esta en <a href="https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data">github</a>. Esta lista proviene de <a href="http://elpais.com/especiales/2014/tarjetas-opacas-caja-madrid/">Elpais</a>.</p>
+<pre class="r"><code>CSV &lt;- getURL(&quot;https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/personas.csv&quot;
+              , ssl.verifypeer = FALSE, useragent = &quot;R&quot;)
+
+personas &lt;- read.csv(text=CSV)</code></pre>
+</div>
 <div id="los-movimientos" class="section level3">
-<h3>los movimientos</h3>
+<h3>Los movimientos</h3>
 <p>Vamos a descargar los movimientos asociados a cada tarjeta. Leemos el <em>.xlsx</em> con el paquete <code>gdata</code>.</p>
 <pre class="r"><code>#install.packages(&quot;gdata&quot;)
 library(&quot;gdata&quot;)
@@ -85,32 +92,277 @@ get_xlsx &lt;- function(tarjeta){
   url &lt;- paste(&quot;http://www.cuartopoder.es/multimedia/files/2014/10&quot;, tarjeta$fichero, sep=&quot;/&quot;)
   
   # descargamos el .xlsx y lo transformamos en una data.frame
-  mov = read.xls(url, sheet = 1, header = TRUE)
+  mov = read.xls(url, sheet = 1, header = TRUE, stringsAsFactors = FALSE)
   
   # removemos la lineas sin gastos (últimas dos filas)
   # y cogemos las primeras 10 columnas (unos ficheros tienen 11)
   mov &lt;- subset(mov, NIF != '')[,1:10]
   
   # añadimos el campo `tarjeta`
-  mov$tarjeta &lt;- tarjeta$id
+  mov$tarjeta_id &lt;- tarjeta$tarjeta_id
     
   mov
 }
 
 # plyr is mejor para trabajar con listas
 library(&quot;plyr&quot;)
-descargas &lt;- dlply(tarjetas, .(id), get_xlsx)</code></pre>
+descargas &lt;- dlply(tarjetas, .(tarjeta_id), get_xlsx)</code></pre>
 <p>Tenemos una lista de <em>data.frame</em>. Las unimos en una sola <em>data.frame</em>. Utilizamos la función <code>rbindlis</code> del paquete <code>data.table</code>:</p>
 <pre class="r"><code>#install.packages(&quot;data.table&quot;)
 library(&quot;data.table&quot;)
-movimientos &lt;- rbindlist(descargas)</code></pre>
+movimientos &lt;- rbindlist(descargas)
+head(movimientos)</code></pre>
+<pre><code>##           NIF                  NOMBRE      TARJETA      FECHA HORA_HOST
+## 1: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-08  22.05.40
+## 2: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-13  17.26.38
+## 3: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-13  17.37.16
+## 4: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-15  15.19.48
+## 5: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-16  15.35.31
+## 6: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-16  15.35.32
+##    COD_OPERACION COD_OPE_DESC          IMPORTE
+## 1:           800       COMPRA               99
+## 2:           800       COMPRA               77
+## 3:           801       COMPRA               29
+## 4:           800       COMPRA 7.90999984741211
+## 5:           800       COMPRA 57.6500015258789
+## 6:           800       COMPRA 122.279998779297
+##                   Nombre_comercio                       DES_L_SEC_ACTIVI
+## 1: T.L.I. MADRID                                                 ALDEASA
+## 2: YUSTY S.A.                                  CONFECCION TEXTIL NIVEL 2
+## 3: DENIS JR.                                   CONFECCION TEXTIL NIVEL 2
+## 4: GPV MATEO INURRIA                                        C.A.M.P.S.A.
+## 5:                                PIEL(EXCL.PELETERIAS)ANTE,NAPA Y CUERO
+## 6:                                PIEL(EXCL.PELETERIAS)ANTE,NAPA Y CUERO
+##      tarjeta_id
+## 1: Tarjeta1_ACE
+## 2: Tarjeta1_ACE
+## 3: Tarjeta1_ACE
+## 4: Tarjeta1_ACE
+## 5: Tarjeta1_ACE
+## 6: Tarjeta1_ACE</code></pre>
 <p><em>Nota: que esta función bastante más rápido que un simple <code>do.call</code>:</em></p>
 <pre class="r"><code>system.time({do.call(rbind, descargas)})</code></pre>
 <pre><code>##    user  system elapsed 
-##   1.991   0.013   2.018</code></pre>
+##   0.849   0.020   0.876</code></pre>
 <pre class="r"><code>system.time({rbindlist(descargas)})</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.183   0.001   0.185</code></pre>
+##   0.123   0.002   0.125</code></pre>
+<p>Pequeños ajustes sobre la table movimientos:</p>
+<ul>
+<li><p>ponemos los nombres de columnas en minúscula:</p>
+<pre class="r"><code>setnames(movimientos, names(movimientos), tolower(names(movimientos)))</code></pre></li>
+<li><p>transformamos los importes decimales (limitados a 2 cifras):</p>
+<pre class="r"><code>movimientos[,importe := round(as.numeric(importe, 2))]</code></pre>
+<pre><code>## Warning: NAs introduced by coercion</code></pre>
+<pre><code>##               nif                           nombre      tarjeta      fecha
+##     1: 000549649H          CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-08
+##     2: 000549649H          CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-13
+##     3: 000549649H          CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-13
+##     4: 000549649H          CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-15
+##     5: 000549649H          CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-16
+##    ---                                                                    
+## 82136: 001158700Y FERNANDEZ NORNIELLA, JOSE MANUEL 4.918049e+15 2012-01-05
+## 82137: 001158700Y FERNANDEZ NORNIELLA, JOSE MANUEL 4.918049e+15 2012-01-13
+## 82138: 001158700Y FERNANDEZ NORNIELLA, JOSE MANUEL 4.918049e+15 2012-01-13
+## 82139: 001158700Y FERNANDEZ NORNIELLA, JOSE MANUEL 4.918049e+15 2012-01-13
+## 82140: 001158700Y FERNANDEZ NORNIELLA, JOSE MANUEL 4.918049e+15 2012-02-01
+##        hora_host cod_operacion
+##     1:  22.05.40           800
+##     2:  17.26.38           800
+##     3:  17.37.16           801
+##     4:  15.19.48           800
+##     5:  15.35.31           800
+##    ---                        
+## 82136:  15.36.21           800
+## 82137:  16.01.02           800
+## 82138:  16.01.02           800
+## 82139:  16.01.02           800
+## 82140:  03.30.04           400
+##                                        cod_ope_desc importe
+##     1:                                       COMPRA      99
+##     2:                                       COMPRA      77
+##     3:                                       COMPRA      29
+##     4:                                       COMPRA       8
+##     5:                                       COMPRA      58
+##    ---                                                     
+## 82136:                                       COMPRA       1
+## 82137:                                       COMPRA      88
+## 82138:                                       COMPRA      88
+## 82139:                                       COMPRA      88
+## 82140: CARGO POR FACTURACION DE TARJETAS DE CREDITO    -440
+##                       nombre_comercio
+##     1: T.L.I. MADRID                 
+##     2: YUSTY S.A.                    
+##     3: DENIS JR.                     
+##     4: GPV MATEO INURRIA             
+##     5:                               
+##    ---                               
+## 82136:                             NA
+## 82137:                             NA
+## 82138:                             NA
+## 82139:                             NA
+## 82140:                             NA
+##                                    des_l_sec_activi    tarjeta_id
+##     1:                                      ALDEASA  Tarjeta1_ACE
+##     2:                    CONFECCION TEXTIL NIVEL 2  Tarjeta1_ACE
+##     3:                    CONFECCION TEXTIL NIVEL 2  Tarjeta1_ACE
+##     4:                                 C.A.M.P.S.A.  Tarjeta1_ACE
+##     5:       PIEL(EXCL.PELETERIAS)ANTE,NAPA Y CUERO  Tarjeta1_ACE
+##    ---                                                           
+## 82136:      DIRECT MARKETING CONTINUITY/SUBCRIPCION Tarjeta3_JMFN
+## 82137: MISCELLANEOUS APPAREL &amp;amp; ACCESSORY STORES Tarjeta3_JMFN
+## 82138: MISCELLANEOUS APPAREL &amp;amp; ACCESSORY STORES Tarjeta3_JMFN
+## 82139: MISCELLANEOUS APPAREL &amp;amp; ACCESSORY STORES Tarjeta3_JMFN
+## 82140:                                              Tarjeta3_JMFN</code></pre></li>
+</ul>
+</div>
+</div>
+<div id="como-organizar-los-datos" class="section level1">
+<h1>Como organizar los datos</h1>
+<div id="agrupar-los-datos" class="section level3">
+<h3>Agrupar los datos</h3>
+<p>Los datos están ahora dispersados en 3 tablas: personas, tarjetas y movimientos. Vamos agrupar estos en una sola table <strong>data</strong>, así podremos calcular por ejemplo como se reparten los gastos por partido político.</p>
+<p>Usamos las funciones JOIN del paquete <strong>dlyr</strong>. Primero los movimientos y las tarjetas:</p>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: 'dplyr'
+## 
+## The following objects are masked from 'package:plyr':
+## 
+##     arrange, desc, failwith, id, mutate, summarise, summarize
+## 
+## The following object is masked from 'package:data.table':
+## 
+##     last
+## 
+## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre class="r"><code>tar_mov &lt;- join(movimientos, tarjetas, by=&quot;tarjeta_id&quot;)
+head(tar_mov)</code></pre>
+<pre><code>##           nif                  nombre      tarjeta      fecha hora_host
+## 1: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-08  22.05.40
+## 2: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-13  17.26.38
+## 3: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-13  17.37.16
+## 4: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-15  15.19.48
+## 5: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-16  15.35.31
+## 6: 000549649H CAMARA EGUINOA, ANTONIO 4.918049e+15 2003-10-16  15.35.32
+##    cod_operacion cod_ope_desc importe                nombre_comercio
+## 1:           800       COMPRA      99 T.L.I. MADRID                 
+## 2:           800       COMPRA      77 YUSTY S.A.                    
+## 3:           801       COMPRA      29 DENIS JR.                     
+## 4:           800       COMPRA       8 GPV MATEO INURRIA             
+## 5:           800       COMPRA      58                               
+## 6:           800       COMPRA     122                               
+##                          des_l_sec_activi   tarjeta_id
+## 1:                                ALDEASA Tarjeta1_ACE
+## 2:              CONFECCION TEXTIL NIVEL 2 Tarjeta1_ACE
+## 3:              CONFECCION TEXTIL NIVEL 2 Tarjeta1_ACE
+## 4:                           C.A.M.P.S.A. Tarjeta1_ACE
+## 5: PIEL(EXCL.PELETERIAS)ANTE,NAPA Y CUERO Tarjeta1_ACE
+## 6: PIEL(EXCL.PELETERIAS)ANTE,NAPA Y CUERO Tarjeta1_ACE
+##                   persona                     fichero
+## 1: Antonio Camara Eguinoa antonio_camara_eguinoa.xlsx
+## 2: Antonio Camara Eguinoa antonio_camara_eguinoa.xlsx
+## 3: Antonio Camara Eguinoa antonio_camara_eguinoa.xlsx
+## 4: Antonio Camara Eguinoa antonio_camara_eguinoa.xlsx
+## 5: Antonio Camara Eguinoa antonio_camara_eguinoa.xlsx
+## 6: Antonio Camara Eguinoa antonio_camara_eguinoa.xlsx</code></pre>
+<p>Segundo añadimos las personas.</p>
+<pre class="r"><code>#creamos la columna 'persona'
+personas$persona &lt;- personas$nombre
+
+data &lt;- anti_join(personas, tar_mov, by=&quot;persona&quot;)
+
+data[order(data$persona),&quot;persona&quot;]</code></pre>
+<pre><code>##  [1] Alberto Recarte García Andrade        
+##  [2] Ángel Eugenio Gómez del Pulgar Perales
+##  [3] Angel Rizaldos González               
+##  [4] Antonio Cámara Eguinoa                
+##  [5] Antonio Rey de Viñas Sánchez-Majestad 
+##  [6] Antonio Romero Lázaro                 
+##  [7] Arturo Luis Fernández Álvarez         
+##  [8] Beltrán Gutiérrez Moliner             
+##  [9] Cándido Cerón Escudero                
+## [10] Carlos María Martínez Martínez        
+## [11] Carlos Vela García                    
+## [12] Carmen Contreras Gómez                
+## [13] Eduardo Torres Posada                 
+## [14] Enrique de la Torre Martínez          
+## [15] Estanislao Rodríguez-Ponga Salamanca  
+## [16] Félix Manuel Sánchez Acal             
+## [17] Fernando Serrano Antón                
+## [18] Francisco Javier López Madrid         
+## [19] Francisco José Moure Bourio           
+## [20] Francisco José Pérez Fernández        
+## [21] Gabriel María Moreno Flores           
+## [22] Gerardo Díaz Ferrán                   
+## [23] Gonzalo Martín Pascual                
+## [24] Ignacio del Río García de Sola        
+## [25] Ignacio de Navasques Cobián           
+## [26] Ignacio Varela Díaz                   
+## [27] Ildefonso José Sánchez Barcoj         
+## [28] Javier de Miguel Sánchez              
+## [29] Jesús Pedroche Nieto                  
+## [30] Joaquín García Pontes                 
+## [31] Jorge Gómez Moreno                    
+## [32] Jorge Rábago Juan Aracil              
+## [33] José Acosta Cubero                    
+## [34] José Antonio Moral Santín             
+## [35] José Caballero Domínguez              
+## [36] José Luis Acero Benedicto             
+## [37] José Manuel Fernández Norniella       
+## [38] José María Arteta Vico                
+## [39] José María Buenaventura Zabala        
+## [40] José María de la Riva Amez            
+## [41] José María Fernández del Río          
+## [42] José Nieto Antolinos                  
+## [43] José Ricardo Martínez Castro          
+## [44] Juan Emilio Iranzo Martín             
+## [45] Juan Gómez Castañeda                  
+## [46] Juan José Azcona Olondriz             
+## [47] Luis Gabarda Durán                    
+## [48] Manuel José Rodríguez González        
+## [49] María Carmen Cafranga Cavestany       
+## [50] María Elena Gil García                
+## [51] María Enedina Alvárez Gayol           
+## [52] Mariano Pérez Claver                  
+## [53] Matías Amat Roca                      
+## [54] Miguel Ángel Abejón Resa              
+## [55] Miguel Ángel Araujo Serrano           
+## [56] Pablo Abejas Juárez                   
+## [57] Pedro Bedia Pérez                     
+## [58] Rafael Darío Fernández Yruegas Moro   
+## [59] Rafael Spottorno Díaz Caro            
+## [60] Ramón Espinar Gallego                 
+## [61] Ramón Ferraz Ricarte                  
+## [62] Ramón Martínez Vilches                
+## [63] Rubén Cruz Orive                      
+## [64] Santiago Javier Sánchez Carlos        
+## [65] Virgilio Zapatero Gómez               
+## 79 Levels: Alberto Recarte García Andrade ... Virgilio Zapatero Gómez</code></pre>
+<p>¡problema! el <strong>anti_join</strong> devuelve 67 personas. Siñifica que 67 de las 80 filas de la tabla persona que no tienen equivalente en la tabla mov_tar. Esta debido a los accentos, <code>personas$persona</code> tiene acentos, <code>tar_mov$persona</code> no.</p>
+<pre class="r"><code>#el columna persona, es el campo nombre sin accentos, ni ñ
+personas$persona &lt;- iconv(personas$nombre, from = &quot;UTF-8&quot;, to = &quot;ASCII//TRANSLIT&quot;)
+
+#misma cosa para las tarjetas
+tarjetas$persona &lt;- iconv(tarjetas$persona, from = &quot;UTF-8&quot;, to = &quot;ASCII//TRANSLIT&quot;)
+
+#rehacemos la table tar_mov
+tar_mov &lt;- join(movimientos, tarjetas, by=&quot;tarjeta_id&quot;)
+
+#y probamos otra vez el joint
+data &lt;- anti_join(personas, tar_mov, by=&quot;persona&quot;)
+
+data[order(data$persona),&quot;persona&quot;]</code></pre>
+<pre><code>## [1] &quot;Eduardo Torres Posada&quot;              
+## [2] &quot;Felix Manuel Sanchez Acal&quot;          
+## [3] &quot;Juan Gomez Castaneda&quot;               
+## [4] &quot;Rafael Dario Fernandez Yruegas Moro&quot;</code></pre>
 </div>
 </div>
 
