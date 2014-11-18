@@ -1,16 +1,12 @@
-```{r setup, include=FALSE, echo=FALSE}
-knitr::opts_chunk$set(cache=TRUE)
-```
-
 Como pillar los datos
 =====================
 
-Los datos están en la pagina: http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403.
+Los datos están en [esta](http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403) pagina.
 
 ### Las tarjetas
 Base a esta pagina hemos creado con [libreoffice](https://www.libreoffice.org/) un *.csv* que lista las tarjetas. La descargamos de [github](https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data) gracias a la función `getURL` del paquete `RCurl`.
 
-_Nota: Hay que tener un librería SSL instalada junto con Curl porque `github` pregunta por esta tipo de identificación (http**s**)_
+_Nota: Hay que tener un librería SSL instalada junto con Curl porque **github** pregunta por esta tipo de identificación (http**s**)_
 
 ```{r}
 # install.packages(RCurl)
@@ -25,7 +21,7 @@ tarjetas <- read.csv(text=CSV)
 
 ### Las personas 
 
-Descargamos e importamos el fichero *.csv* que esta en [github](https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data). Esta lista proviene de [Elpais](http://elpais.com/especiales/2014/tarjetas-opacas-caja-madrid/).
+Descargamos e importamos el fichero *.csv* que esta en [github](https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data). Esta lista proviene del periodico [Elpais](http://elpais.com/especiales/2014/tarjetas-opacas-caja-madrid/).
 
 ```{r}
 
@@ -74,7 +70,7 @@ descargas <- dlply(tarjetas, .(tarjeta_id), get_xlsx)
 ```
 
 
-Tenemos una lista de *data.frame*. Las unimos en una sola *data.frame*. Utilizamos la función `rbindlis` del paquete `data.table`:
+Tenemos una lista de *data.frame*. Las unimos en una sola *data.frame*. Utilizamos la función `rbindlist` del paquete `data.table`:
 
 ```{r}
 #install.packages("data.table")
@@ -119,7 +115,7 @@ Usamos las funciones JOIN del paquete  **dlyr**. Primero los movimientos y las t
 
 ```{r}
 library(dplyr)
-tar_mov <- join(movimientos, tarjetas, by="tarjeta_id")
+tar_mov <- left_join(movimientos, tarjetas, by="tarjeta_id")
 head(tar_mov)
 ```
 
@@ -128,13 +124,11 @@ Segundo añadimos las personas.
 ```{r}
 #creamos la columna 'persona'
 personas$persona <- personas$nombre
-
-data <- anti_join(personas, tar_mov, by="persona")
-
-data[order(data$persona),"persona"]
+orfanos_personas <- anti_join(personas, tar_mov, by="persona")
+head(orfanos_personas)
 ```
 
-¡problema! el **anti_join** devuelve 67 personas. Siñifica que 67 de las 80 filas de la tabla persona que no tienen equivalente en la tabla mov_tar. Esta debido a los accentos, `personas$persona` tiene acentos, `tar_mov$persona` no.
+¡problema! el **anti_join** devuelve 67 personas. Significa que 67 de las 80 filas de la tabla persona que no tienen equivalente en la tabla mov_tar. Esta debido a los accentos, `personas$persona` tiene acentos, `tar_mov$persona` no.
 
 ```{r}
 #el columna persona, es el campo nombre sin accentos, ni ñ
@@ -144,13 +138,26 @@ personas$persona <- iconv(personas$nombre, from = "UTF-8", to = "ASCII//TRANSLIT
 tarjetas$persona <- iconv(tarjetas$persona, from = "UTF-8", to = "ASCII//TRANSLIT")
 
 #rehacemos la table tar_mov
-tar_mov <- join(movimientos, tarjetas, by="tarjeta_id")
+tar_mov <- left_join(movimientos, tarjetas, by="tarjeta_id")
 
 #y probamos otra vez el joint
-data <- anti_join(personas, tar_mov, by="persona")
+orfanos_personas <- anti_join(personas, tar_mov, by="persona")
+nrow(orfanos_personas)
 
-data[order(data$persona),"persona"]
+orfanos_tar_mov <- anti_join(tar_mov, personas, by="persona")
+nrow(orfanos_tar_mov)
 
 ```
 
+Ya no hay orfanos. Podemos creare la data frame data que agrupa todos los datos.
+
+```{r}
+data <- left_join(personas, tar_mov, by="persona")
+str(data)
+```
+
+We save this data.
+```{r}
+saveRDS(data, file="data.rds")
+```
 
