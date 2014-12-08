@@ -1,0 +1,104 @@
+
+Analizar los datos
+==================
+
+## los verbos
+
+> "En el principio existía el Verbo"
+
+* __select__: seleccionar columnas por nombre
+* __filter__: suprimir las filas que no respectan una condición
+* __arrange__: ordenar filas
+* __mutate__: añade nuevas variables (con __group_by__)
+* __summarise__: agrupar valores (con __group_by__)
+
+¿como funciona?
+
+* primer argumento es una data.frame
+* los siguientes argumentos dicen que hacer con los datos
+* siempre devuelve otra data.frame
+
+### Exemplos de selección
+
+```{r}
+#añadimos la hora del dia
+mov$hora <- as.integer(substring(mov$hora_host, 0, 2))
+
+select(personas, -funcion)
+
+select(mov, nif:importe)
+select(mov, contains("hora"))
+select(mov, starts_with("nombre"))
+select(mov, matches("?ope?"))
+
+reduced <- select(mov, organisacion, nombre.x, importe, hora, des_l_sec_activi)
+```
+
+> equivalente en SQL: `SELECT`
+
+### Exemplos de filtage:
+
+```{r}
+mov <- tbl_df(mov)
+filter(personas, organisacion == "PSOE")
+filter(personas, organisacion %in% c("PSOE", "Partido Popular"))
+filter(reduced, importe > 10000)
+filter(reduced, importe > 10000 & hora < 4)
+
+```
+
+> equivalente en SQL: `WHERE`
+
+### Ejemplos de sorteo
+
+```{r}
+head(
+  arrange(personas, desc(organisacion), nombre)
+  )
+```
+
+> equivalente en SQL: `ORDER BY`
+
+### Ejemplos de mutación y resumen
+
+```{r}
+summarise(mov, max(importe, na.rm=T))
+mutate(select(mov, nombre.x, importe), max(importe, na.rm=T))
+summarise(group_by(mov, nombre.x), sum(importe, na.rm=T))
+
+```
+
+> equivalente en SQL: `GROUP BY`
+
+## los 'tubos'
+
+El operador `%>%` permite encadenar los verbos y escribir un codigo más legible.
+
+
+```{r}
+# top 10 personas con más gastos
+mov %>% filter(importe > 0) %>%
+  group_by(nombre.x) %>%
+  summarize(total = sum(importe)) %>%
+  arrange(desc(total)) %>%
+  top_n(10)
+
+```
+
+es equivalente a:
+
+```{r}
+top_n(
+  arrange(
+    summarize(
+      group_by(
+          filter(mov, importe > 0)
+          , nombre.x)
+        , total = sum(importe)
+      )
+    , desc(total)
+    )
+  , 10
+  )
+```
+
