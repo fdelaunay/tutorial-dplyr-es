@@ -3,15 +3,13 @@ tutorial-dplyr-es
 
 ## objetivo 
 
-Tutorial en español para:
+`tutorial-dplyr-es` es un tutorial en español para:
 
  - aprender a usar **dplyr** (paquete *R*)
+ - entender los verbos y los "pipes" (tubos)
+ - comparar la velocidad con otros metodos
  
-pero tambíen para aprender:
-
- - conceptos bases de **dplyr** y las **data.tables**
- - como trabajar en grupo usando **github**
- - como organisar (**tidy**) datos 
+En apendice el lector encontrará como fueron creado los datos. 
 
 ## Programa
 
