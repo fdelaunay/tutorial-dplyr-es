@@ -49,23 +49,18 @@ CSV <- getURL("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/mas
               , ssl.verifypeer = FALSE, useragent = "R")
 
 personas <- read.csv(text=CSV)
+head(personas)
 ```
 
 La tabla `movimientos`, una data.table que lista todos los movimientos realisados, el importe, la fecha y hora, así que un breve concepto.
 
 ```{r}
-  
-download.file("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/movimientos.rds",
-              destfile="movimientos.rds", method="curl")
+download.file("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/movimientos.csv.zip",
+              destfile="movimientos.csv.zip", method="curl")
 
-download.file("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/movimientos.zip",
-              destfile="movimientos.zip", method="curl")
-
-unzip("movimientos.zip")
-
-head(movimientos)
-
-
+unzip("movimientos.csv.zip")
+movimientos <- read.csv("movimientos.csv")
+str(movimientos)
 ```
 
 
