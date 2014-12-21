@@ -195,7 +195,8 @@ Guardamos los datos
 ```{r}
 #backup
 saveRDS(mov_simple, file="tutorial-dplyr-es/data/movimientos.rds")
-
+write.csv(mov_simple, file="tutorial-dplyr-es/data/movimientos.csv")
+zip("tutorial-dplyr-es/data/movimientos.zip", files="tutorial-dplyr-es/data/movimientos.csv")
 ```
 
 
