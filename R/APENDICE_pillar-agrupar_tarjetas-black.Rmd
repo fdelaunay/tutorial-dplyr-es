@@ -1,0 +1,201 @@
+Como pillar los datos
+=====================
+
+Los datos están en [esta](http://www.cuartopoder.es/multimedia/2014/10/11/gastos-de-los-exdirectivos-de-caja-madrid-uno-a-uno-con-las-tarjetas-negras-tabla/3403) pagina.
+
+### Las tarjetas
+Base a esta pagina hemos creado con [libreoffice](https://www.libreoffice.org/) un *.csv* que lista las tarjetas. La descargamos de [github](https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data) gracias a la función `getURL` del paquete `RCurl`.
+
+_Nota: Hay que tener un librería SSL instalada junto con Curl porque **github** pregunta por esta tipo de identificación (http**s**)_
+
+```{r}
+# install.packages(RCurl)
+library(RCurl)
+
+CSV <- getURL("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/tarjetas.csv"
+              , ssl.verifypeer = FALSE, useragent = "R")
+
+tarjetas <- read.csv(text=CSV)
+
+```
+
+### Las personas 
+
+Descargamos e importamos el fichero *.csv* que esta en [github](https://github.com/fdelaunay/tutorial-dplyr-es/tree/master/data). Esta lista proviene del periodico [Elpais](http://elpais.com/especiales/2014/tarjetas-opacas-caja-madrid/).
+
+```{r}
+
+CSV <- getURL("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/personas.csv"
+              , ssl.verifypeer = FALSE, useragent = "R")
+
+personas <- read.csv(text=CSV)
+```
+
+
+### Los movimientos
+
+Vamos a descargar los movimientos asociados a cada tarjeta. Leemos el *.xlsx* con el paquete `gdata`.
+
+```{r, message=FALSE, cache=TRUE, warning=FALSE}
+#install.packages("gdata")
+library("gdata")
+
+# inicializamos una lista donde guardaremos los movimientos
+descargas <- list()
+
+# creamos una función que, dado una tarjeta, devuelve los movimientos
+get_xlsx <- function(tarjeta){
+  message(paste("# tratando fichero:", tarjeta$fichero))
+  
+  # formamos la URL
+  url <- paste("http://www.cuartopoder.es/multimedia/files/2014/10", tarjeta$fichero, sep="/")
+  
+  # descargamos el .xlsx y lo transformamos en una data.frame
+  mov = read.xls(url, sheet = 1, header = TRUE, stringsAsFactors = FALSE)
+  
+  # removemos la lineas sin gastos (últimas dos filas)
+  # y cogemos las primeras 10 columnas (unos ficheros tienen 11)
+  mov <- subset(mov, NIF != '')[,1:10]
+  
+  # añadimos el campo `tarjeta`
+  mov$tarjeta_id <- tarjeta$tarjeta_id
+    
+  mov
+}
+
+# plyr is mejor para trabajar con listas
+library("plyr")
+descargas <- dlply(tarjetas, .(tarjeta_id), get_xlsx)
+
+```
+
+
+Tenemos una lista de *data.frame*. Las unimos en una sola *data.frame*. Utilizamos la función `rbindlist` del paquete `data.table`:
+
+```{r}
+#install.packages("data.table")
+library("data.table")
+movimientos <- rbindlist(descargas)
+head(movimientos)
+```
+
+*Nota: que esta función bastante más rápido que un simple `do.call`:*
+
+```{r, warning=FALSE}
+system.time({do.call(rbind, descargas)})
+system.time({rbindlist(descargas)})
+```
+
+
+Pequeños ajustes sobre la table movimientos: 
+
+ * ponemos los nombres de columnas en minúscula:
+
+    ```{r}
+    setnames(movimientos, names(movimientos), tolower(names(movimientos)))
+    ```
+
+ * transformamos los importes decimales (limitados a 2 cifras):
+    
+    ```{r}
+    movimientos[,importe := as.numeric(importe)]
+    head(movimientos)
+    ```
+
+
+ * transformamos los importes decimales (limitados a 2 cifras):
+    
+    ```{r}
+    movimientos[,fecha := as.POSIXct(fecha)]
+    movimientos[,hora := as.integer(substr(hora_host, 0, 2))]
+    head(movimientos)
+
+    ```
+
+
+
+Como organizar los datos
+========================
+
+### Agrupar los datos
+
+Los datos están ahora dispersados en 3 tablas: personas, tarjetas y movimientos.
+Vamos agrupar estos en una sola table **data**, así podremos calcular por ejemplo como se reparten los gastos por partido político.
+
+Usamos las funciones JOIN del paquete  **dlyr**. Primero los movimientos y las tarjetas:
+
+```{r}
+library(dplyr)
+tar_mov <- left_join(movimientos, tarjetas, by="tarjeta_id")
+head(tar_mov)
+```
+
+Segundo añadimos las personas.
+
+```{r}
+#creamos la columna 'persona'
+personas$persona <- personas$nombre
+orfanos_personas <- anti_join(personas, tar_mov, by="persona")
+head(orfanos_personas)
+```
+
+¡problema! el **anti_join** devuelve 67 personas. Significa que 67 de las 80 filas de la tabla persona que no tienen equivalente en la tabla mov_tar. Esta debido a los accentos, `personas$persona` tiene acentos, `tar_mov$persona` no.
+
+```{r}
+#el columna persona, es el campo nombre sin accentos, ni ñ
+personas$persona <- iconv(personas$nombre, from = "UTF-8", to = "ASCII//TRANSLIT")
+
+#misma cosa para las tarjetas
+tarjetas$persona <- iconv(tarjetas$persona, from = "UTF-8", to = "ASCII//TRANSLIT")
+
+#rehacemos la table tar_mov
+tar_mov <- left_join(movimientos, tarjetas, by="tarjeta_id")
+
+#y probamos otra vez el joint
+orfanos_personas <- anti_join(personas, tar_mov, by="persona")
+nrow(orfanos_personas)
+
+orfanos_tar_mov <- anti_join(tar_mov, personas, by="persona")
+nrow(orfanos_tar_mov)
+
+```
+
+Ya no hay orfanos. Podemos creare la data frame data que agrupa todos los datos.
+
+```{r}
+mov <- left_join(personas, tar_mov, by="persona")
+str(mov)
+```
+
+Reformamos la tabla `mov`:
+
+```{r}
+mov_simple <- mov %>% filter(cod_ope_desc != 'CARGO POR FACTURACION DE TARJETAS DE CREDITO') %>%
+          select(nombre = nombre.x
+                 , fecha
+                 , hora
+                 , importe
+                 , comercio = nombre_comercio
+                 , actividad_completa = des_l_sec_activi
+                 )
+        
+
+```
+
+TODO: crear columna "actividad", simplificada.
+
+```{r}
+actividades <- mov_simple %>% group_by(actividad_completa) %>% summarize()
+
+```
+
+
+Guardamos los datos
+
+```{r}
+#backup
+saveRDS(mov_simple, file="tutorial-dplyr-es/data/movimientos.rds")
+
+```
+
+
