@@ -1,78 +1,156 @@
 
+
+```{r setup, include=FALSE}
+# caching
+# knitr::opts_chunk$set(cache=TRUE)
+```
+
 Tutorial dplyr
 ==============
 
-## Introducción
+### Introducción
 
-### ¿Que es **dplyr**?
+#### ¿Que es **dplyr**? 
 
-**[dplyr](https://github.com/hadley/dplyr)** es una libreria de funciones para analisar y manipular datos: dividir grandes colleciones de datos, applicar una función a cada parte y re-agrupar las, y tambien aplicar filtros, ordenar y juntar datos. Es una evolución del paquete **[plyr](http://plyr.had.co.nz/)**: es más rapido, capaz de trabajar sobre datos remotos y solo trabaja sobre data.frames.
+**[dplyr](https://github.com/hadley/dplyr)** es una librería de funciones para analizar y manipular datos: dividir grandes colecciones de datos, aplicar una función a cada parte y re-agrupar las, y también aplicar filtros, ordenar y juntar datos. Es una evolución del paquete **[plyr](http://plyr.had.co.nz/)**: es más rápido, capaz de trabajar sobre datos remotos y solo trabaja sobre data.frames.
 
-Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/dplyr)** es la *nueva* iteración del paquete **plyr**, enfocado a las **data.frames**, con 3 objectivos:
+Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/dplyr)** es la *nueva* iteración del paquete **plyr**, enfocado a las **data.frames**, con 3 objetivos:
 
-* identificar cual son las manipulaciones más importantes para analisar datos y hacerlas faciles con R.
+* identificar cual son las manipulaciones más importantes para analizar datos y hacerlas fáciles con R.
 
-* escribir las partes-llaves en [C++](http://www.rcpp.org/) para manipular los datos en memoria muy rapidamente.
+* escribir las partes-llaves en [C++](http://www.rcpp.org/) para manipular los datos en memoria muy rápidamente.
 
-* usar las misma interace para trabajar donde sea los datos: data frame, data table o database.
+* usar las misma interfaces para trabajar donde sea los datos: data frame, data table o database.
 
-### objetivo del tutorial
+#### objetivo del tutorial
 
- - entender los conceptos basicos de **dplyr**
+ - entender los conceptos básicos de **dplyr**
  - aprender su *gramática*
  - saber con que objetos puede trabajar
  
 Trabajaremos sobre los siguientes datos:
 
- - los movimientos de las tristamente famosas *tarjetas black* de Caja Madrid
- - !!! datos scientificos pesados (1Gb)
+ - los movimientos de las tristemente famosas *tarjetas black* de Caja Madrid
+ - !!! datos científicos pesados (1Gb)
  
- 
-### Requerimientos
+**Requerimientos**: Es necesario un conocimiento básico de R y saber como instalar paquetes.
 
-Es necessario un conociemiento básico de R y saber como instalar paquetes.
+> La integralidad de este tutorial esta en un repositorio público de Github: http://github.com/fdelaunay/tutorial-dplyr-es
+> ¡Cualquier colaboración/correción esta bienvenida!
 
-## Conceptos
+#### Documentación
 
+Documentación del paquete (una vez instalado):
 
-
-## Los datos
-
-### Tarjetas *black*
-
-La tabla `personas`, una data.frame que lista las personas que han tenido una tarjeta black, su función dentro de Caja Madrid y el partido politico o la organisación sindical a cual pertenece.
-
-```{r}
-library(RCurl)
-
-CSV <- getURL("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/personas.csv"
-              , ssl.verifypeer = FALSE, useragent = "R")
-
-personas <- read.csv(text=CSV)
-head(personas)
+```{r, eval=FALSE}
+??dplyr
 ```
 
-La tabla `movimientos`, una data.table que lista todos los movimientos realisados, el importe, la fecha y hora, así que un breve concepto.
+Tutoriales en inglés:
+
+ * Vignette: [_Inroduction to dplyr_](http://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html)
+ * Video: [_dplyr presentado por Hadley_](http://datascience.la/hadley-wickhams-dplyr-tutorial-at-user-2014-part-1/)
+
+
+#### Instalación y cargamento 
+
+Este tutorial fue escrito con la versión `0.4.1` de **dplyr**.
+
+```{r, eval=F, echo=FALSE}
+# instalación
+install.packages("dplyr")
+```
+
+
+```{r, message=FALSE}
+# cargamento
+library(dplyr)
+```
+
+
+#### Los datos
+
+El paquete "**tarjetasblack**" contiene dos objetos:
+ 
+ 1. La tabla `movimientos`, una data.frame que lista todos los movimientos realizados, el importe, la fecha y hora, el nombre del comercio y una clasificación del tipo de actividad.
+ 2. La table `miembros`, otra data.frame que lista los proprietarios de tarjeta, su función (consejal o directivo) así que la organisación de origen (partido politico o sindicato).
+ 
+
+```{r, message=FALSE}
+library(devtools)
+devtools::install_github("splatsh/tarjetasblack")
+library(tarjetasblack)
+```
 
 ```{r}
-download.file("https://raw.githubusercontent.com/fdelaunay/tutorial-dplyr-es/master/data/movimientos.csv.zip",
-              destfile="movimientos.csv.zip", method="curl")
-
-unzip("movimientos.csv.zip")
-movimientos <- read.csv("movimientos.csv")
 str(movimientos)
+str(miembros)
 ```
 
 
-## Los verbos
+### Fuentes de datos
+
+#### Clase `tbl`
+
+**dplyr** trabaja con objeto de la clase `tbl` (dato con estructura tabular). Es capaz de convertir automaticamente varios tipos de fuente de datos, que sean locales o lejanas (bases de datos).
+
+#### Data frames
+
+```{r, collapse=TRUE}
+# data frame
+head(miembros)
+
+# convertimos a la clase "tbl"
+miembros <- tbl_df(miembros)
+
+# los objetos "tbl" son mas facil de visualisar en la consola:
+miembros
+
+glimpse(miembros) # parecido a str()
+```
+
+#### Data table
+
+**dplyr** permite trabajar con [**data tables**](http://datatable.r-forge.r-project.org/).
+
+Pro:
+
+ + beneficiamos de la alta rapidez de las __data tables__
+ + la sintaxis es mucho más simple que con el operador `[`
+ 
+Contra:
+
+ - para operaciones multiples (por ejemplo seleción + nueva variable), usar directamente las **data.table**s pueden ser más eficazes
+
+Convertimos los movimientos (77207 observaciones) en un objeto data table: 
+
+```{r, echo=FALSE}
+library(data.table)
+movimientos <- tbl_dt(movimientos)
+```
+
+
+#### Bases de datos
+
+**dplyr** tambien puede trabajar con bases de datos de forma casi transparente:
+
+ * SQLite
+ * PostgreSQL/Redshift
+ * MySQL/MariaDB
+ * Bigquery
+ * MonetDB
+
+Más información [aquí](http://cran.r-project.org/web/packages/dplyr/vignettes/databases.html) (inglés).
+
+### Los verbos (sobre una tabla)
 
 > "En el principio existía el Verbo"
 
-* __select__: seleccionar columnas por nombre
-* __filter__: suprimir las filas que no respectan una condición
-* __arrange__: ordenar filas
-* __mutate__: añade nuevas variables (con __group_by__)
-* __summarise__: agrupar valores (con __group_by__)
+* `select()`: seleccionar columnas por nombre
+* `filter()`: suprimir las filas que no respectan una condición (+`slice()`: filtraje por posición)
+* `arrange()`: ordenar filas
+* `mutate()`: añade nuevas variables (con `group_by()`)
+* `summarise()`: agrupar valores (con `group_by()`)
 
 ¿como funciona?
 
@@ -80,82 +158,102 @@ str(movimientos)
 * los siguientes argumentos dicen que hacer con los datos
 * siempre devuelve otra data.frame
 
-### Exemplos de selección
+#### Seleccionar columnas con `select()`
 
-```{r}
-#añadimos la hora del dia
-mov$hora <- as.integer(substring(mov$hora_host, 0, 2))
+Cuanto tenéis un objeto con muchas columnas, puede ser útil usar `select()` para reducir este número:
 
-select(personas, -funcion)
-
-select(mov, nif:importe)
-select(mov, contains("hora"))
-select(mov, starts_with("nombre"))
-select(mov, matches("?ope?"))
-
-reduced <- select(mov, organisacion, nombre.x, importe, hora, des_l_sec_activi)
+```{r, eval=FALSE}
+# todas las columnas menos 'funcion'
+select(miembros, -funcion)
+# las columnas entre 'nombre' y 'fecha'
+select(movimientos, nombre:fecha)
+# las columns con 'om'
+select(movimientos, contains("om"))
+# las columnas que empiezan por 'nom'
+select(movimientos, starts_with("nom"))
+# las columnas que respectan una expresión regular
+select(movimientos, matches("?uto"))
 ```
 
 > equivalente en SQL: `SELECT`
 
-### Exemplos de filtage:
-
 ```{r}
-mov <- tbl_df(mov)
-filter(personas, organisacion == "PSOE")
-filter(personas, organisacion %in% c("PSOE", "Partido Popular"))
-filter(reduced, importe > 10000)
-filter(reduced, importe > 10000 & hora < 4)
+# guardamos esta versión simplifacada de 'movimientos' renombrando las columnas
+mov <- select(movimientos, nom = nombre, imp =  importe, act = actividad)
+```
 
+#### Filtrar registros con `filter()`
+
+`filter()` permite filtrar los registros. El primer argumento es el nombre del data frame. El segundo y los siguientes son expreciones logicas que serán evaluadas en el contexto del data frame:
+
+```{r, collapse=TRUE}
+filter(miembros, organisacion %in% c("PSOE", "Partido Popular"))
+filter(miembros, grepl("Antonio", nombre))
+filter(movimientos, importe > 10000)
+filter(movimientos, importe > 10000 & hora < 4)
+```
+
+Para selecionar registros por posición, usar `slice()`:
+```{r}
+slice(miembros, 50:55)
 ```
 
 > equivalente en SQL: `WHERE`
 
-### Ejemplos de sorteo
+#### Sortear registros con `arrange()`
+
+`arrange()` permite sortear los registros por una o varias columnas:
 
 ```{r}
-head(
-  arrange(personas, desc(organisacion), nombre)
-  )
+arrange(miembros, desc(organisacion), nombre)
+```
+
+`top_n` es una combinación de sorteo + filtro:
+
+```{r, collapse=TRUE}
+top_n(mov, 2, imp)
+top_n(miembros, 1) # por defecto, ordena por la ultima columna
+
 ```
 
 > equivalente en SQL: `ORDER BY`
 
-### Ejemplos de mutación y resumen
+### Agregar y transformar con `group_by`, `summarise()` y `mutate()`
 
-```{r}
-summarise(mov, max(importe, na.rm=T))
-mutate(select(mov, nombre.x, importe), max(importe, na.rm=T))
-summarise(group_by(mov, nombre.x), sum(importe, na.rm=T))
+`summarise()` agrega los datos por groupos creados por `group_by()`. Si no estan agrupados, agrupa todo en un solo registro.
 
+```{r, collapse=TRUE}
+summarise(movimientos, max(importe))
+summarise(group_by(mov, nom), max_personal = max(imp))
+summarise(group_by(miembros, organisacion), n())
+```
+
+`mutate()` es muy similar. La diferencia es que `mutate()` no dismimue el número de filas pero añade columnas con el resultado de la agregación:
+
+```{r, collapse=TRUE}
+mutate(mov, total = sum(imp))
+mutate(group_by(mov, nom), total_personal = sum(imp), pp = imp/total_personal)
 ```
 
 > equivalente en SQL: `GROUP BY`
 
-## los 'tubos' (pipe)
+## los 'pipes' (tubos)
 
 El operador `%>%` permite encadenar los verbos y escribir un codigo más legible.
 
-
-```{r}
-# top 10 personas con más gastos
-mov %>% filter(importe > 0) %>%
-  group_by(nombre.x) %>%
-  summarize(total = sum(importe)) %>%
-  arrange(desc(total)) %>%
-  top_n(10)
-
-```
-
+`data %>% function(parameters)`
 es equivalente a:
+`funcion(data, parameters)`
 
-```{r}
+Por ejemplo, 
+
+```{r, eval=FALSE}
 top_n(
   arrange(
-    summarize(
+   summarize(
       group_by(
-          filter(mov, importe > 0)
-          , nombre.x)
+          filter(movimientos, importe > 0)
+          , nombre)
         , total = sum(importe)
       )
     , desc(total)
@@ -164,3 +262,265 @@ top_n(
   )
 ```
 
+es equivalente a:
+
+```{r, eval=FALSE}
+# top 10 miembros con más gastos
+movimientos %>%
+  group_by(nombre) %>%
+  summarize(total = sum(importe)) %>%
+  arrange(desc(total)) %>%
+  top_n(10)
+```
+
+### Ejercicios
+
+#### ¿cual es el import maximo por miembros?
+
+Respuesta:
+```{r}
+movimientos %>% 
+  group_by(nombre) %>%
+  summarize(gasto_max = max(importe))
+```
+
+
+#### ¿cual es el perfil horario de las compras?
+
+Truco: la función `n()` permite dentro `summarise()`, `mutate()` y `filter()` contar el numéro de registros.
+
+Respuesta:
+```{r, collapse=TRUE}
+res <- movimientos %>%
+  group_by(hora) %>%
+  summarise(total = sum(importe))
+
+library(ggplot2)
+ggplot(res, aes(x=hora, y=total))+geom_bar(stat="identity")
+```
+
+#### ¿cual son las 10 actividades más frecuentes?
+
+Truco: la función `n()` permite dentro `summarise()`, `mutate()` y `filter()` contar el numéro de registros.
+
+Respuesta:
+```{r, collapse=TRUE}
+res <-movimientos %>%
+  group_by(actividad) %>%
+  summarise(n = n()) %>%
+  top_n(10)
+
+ggplot(res, aes(x=actividad, y=n)) +
+  geom_bar(stat="identity") + 
+  coord_flip()
+```
+
+
+#### ¿quien es miembros con mejor apetito?
+
+Respuesta:
+```{r, collapse=TRUE}
+movimientos %>%
+  filter(actividad == "RESTAURANTE") %>%
+  group_by(nombre) %>%
+  summarise(total_gastro = sum(importe)) %>%
+  top_n(1)
+```
+
+```{r, echo=F, results='hide'}
+res <- movimientos %>%
+  filter(actividad == "RESTAURANTE") %>%
+  group_by(nombre) %>%
+  summarise(total_gastro = sum(importe)) %>%
+  top_n(1)
+```
+
+#### ¿para cada uno de los 10 miembros más despilfarradores, en que actividad han gastado más? ¿y cuanto?
+Truco: juntar datos con las funciones `left_join`,`right_join`, `semi_join`...
+sintaxis: `left_join(x, y, by = NULL, copy = FALSE, ...)`
+
+Respuesta:
+```{r, collapse=TRUE}
+# los 10 miembros con más gastos
+despilfarradores <- movimientos %>%
+  group_by(nombre) %>%
+  summarize(total = sum(importe)) %>%
+  arrange(desc(total)) %>%
+  top_n(10)
+
+left_join(despilfarradores, movimientos) %>%
+  group_by(nombre, actividad_completa) %>%
+  summarise(total_actividad = sum(importe)) %>%
+  top_n(1)
+```
+
+
+#### ¿el tipo de gasto depiende del partido político?
+
+Respuesta:
+```{r}
+# library(tarjetasblack)
+# class(movimientos)
+# class(miembros)
+all <- left_join(tbl_df(movimientos), miembros, by="nombre")
+all <- as.data.table(all)
+
+res <- all %>% filter(!is.na(actividad) & actividad != '' & organisacion %in% c("Izquierda Unida", "Partido Popular", "PSOE", "Partido Popular")) %>%
+  group_by(organisacion, actividad) %>%
+  summarise(total = sum(importe))
+
+ggplot(res, aes(x=actividad, y=total, fill=organisacion)) +
+  geom_bar(stat="identity", position = "fill") + 
+  coord_flip()
+```
+
+si normalisamos el dinero recibido por partido:
+```{r}
+res <- res %>%
+  filter(total > 50000) %>%
+  group_by(organisacion) %>%
+  mutate(total_partido = sum(total))
+
+#to to: normalisar
+ggplot(res, aes(x=actividad, y=total/total_partido, fill=organisacion)) +
+  geom_bar(stat="identity") + 
+  coord_flip()
+
+```
+
+Repartición por función:
+```{r}
+res <- all %>% filter(!is.na(actividad)) %>%
+  group_by(funcion, actividad) %>%
+  summarise(total = sum(importe)) %>%
+  arrange(desc(total))
+
+ggplot(res, aes(x=actividad, y=total, fill=funcion)) +
+  geom_bar(stat="identity", position = "fill") + 
+  coord_flip()
+```
+
+### Rendimiento comparado
+
+#### Aggregación
+
+```{r}
+library(microbenchmark)
+options(digits = 3, microbenchmark.unit = "ms")
+
+# reset
+rm(movimientos)
+library(tarjetasblack)
+movimientos_df <- tbl_df(movimientos)
+movimientos_dt <- tbl_dt(movimientos)
+
+bch1 <- microbenchmark(
+  base =     tapply(movimientos_df$importe, movimientos_df$nombre, FUN = mean),
+  dplyr_df = movimientos_df %>% group_by(nombre) %>% summarise(a = mean(importe)),
+  dplyr_dt = movimientos_dt %>% group_by(nombre) %>% summarise(a = mean(importe)),
+  dt_raw =   movimientos_dt[, list(a = mean(importe)), by = nombre],
+  times = 5
+)
+autoplot(bch1)
+
+```
+
+
+#### Filtrage
+
+```{r}
+res1 <- microbenchmark(
+  base =    movimientos_df[ave(movimientos_df$importe, movimientos_df$nombre, FUN = max) == movimientos_df$importe,],
+  dplyr_df = movimientos_df %>% group_by(nombre) %>% filter(importe == max(importe)),
+  dplyr_dt = movimientos_dt %>% group_by(nombre) %>% filter(importe == max(importe)),
+  times = 5
+)
+plot(res)
+
+```
+
+
+Nota: el orden tiene importancía:
+
+```{r, eval=FALSE}
+
+res <- microbenchmark(
+  a = movimientos %>% select(actividad_completa) %>% arrange(actividad_completa) %>% distinct(),
+  b = movimientos %>% select(actividad_completa) %>% distinct() %>% arrange(actividad_completa)
+  , times = 10)
+res
+autoplot(res)
+
+```
+
+
+```{r, eval=FALSE}
+n <- 1e+7
+factores <- c("A", "B", "C", "D", "E", "F")
+
+big <- data.frame(factores = as.factor(sample(factores, n, replace = TRUE))
+                  , percent = round(runif(n, min = 0, max = 1), digits = 2)
+                  )
+
+str(big)
+print(object.size(big), units = "GB")
+
+big.dt <- tbl_dt(big)
+
+plot(microbenchmark(
+  #plyr = ddply(big, .(factores), summarise, total = sum(percent)) ,
+  dplyr = big %>% group_by(factores) %>% summarise(total = sum(percent)),
+  data.table = big.dt[, list(total = sum(percent)), by = factores],
+  dplyr.dt = big.dt %>% group_by(factores) %>% summarise(total = sum(percent)),
+  times = 10))
+
+```
+
+
+```{r}
+require(data.table)
+N=2e7; K=100
+set.seed(1)
+DT <- data.table(
+  id1 = sample(sprintf("id%03d",1:K), N, TRUE),      # large groups (char)
+  id2 = sample(sprintf("id%03d",1:K), N, TRUE),      # large groups (char)
+  id3 = sample(sprintf("id%010d",1:(N/K)), N, TRUE), # small groups (char)
+  id4 = sample(K, N, TRUE),                          # large groups (int)
+  id5 = sample(K, N, TRUE),                          # large groups (int)
+  id6 = sample(N/K, N, TRUE),                        # small groups (int)
+  v1 =  sample(5, N, TRUE),                          # int in range [1,5]
+  v2 =  sample(5, N, TRUE),                          # int in range [1,5]
+  v3 =  sample(round(runif(100,max=100),4), N, TRUE) # numeric e.g. 23.5749
+)
+
+
+DF <- as.data.frame(DT)
+tbl_dt <- tbl_dt(DT)
+library(microbenchmark)
+library(dplyr)
+library(ggplot2)
+
+res <- microbenchmark(
+  dt = DT[, sum(v1), keyby=id1],
+  dplyr = tbl_dt %>% group_by(id1) %>% summarise(sum(v1)),
+  base = tapply(DF$v1, DF$id1, FUN = sum)
+  , times = 10, unit = "ms")
+res
+autoplot(res) + expand_limits(x = 0)
+```
+
+### Misc
+
+#### Evolution temporal
+
+```{r, eval=FALSE}
+library(xts)
+library(dygraphs)
+ts <- all %>% group_by(fecha) %>% summarise(total=sum(importe))
+ts <- xts(ts$total, order.by=ts$fecha)
+
+dygraph(ts) %>% 
+  dyRoller(rollPeriod = 30) %>%
+  dyRangeSelector()
+
+```
