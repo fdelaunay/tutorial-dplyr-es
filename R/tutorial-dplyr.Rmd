@@ -10,7 +10,7 @@ output:
 
 ```{r setup, include=FALSE}
 # caching
-# knitr::opts_chunk$set(cache=TRUE)
+#knitr::opts_chunk$set(cache=TRUE)
 ```
 
 Tutorial dplyr
@@ -64,7 +64,7 @@ Tutoriales en inglés:
 
 Este tutorial fue escrito con la versión `0.4.1` de **dplyr**.
 
-```{r, eval=F, echo=FALSE}
+```{r, echo=FALSE}
 # instalación
 if(!require("dplyr"))
   install.packages("dplyr")
