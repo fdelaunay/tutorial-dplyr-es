@@ -1,3 +1,11 @@
+---
+output:
+  md_document:
+    variant: markdown_github
+  html_document:
+    toc: true
+    theme: united
+---
 
 
 ```{r setup, include=FALSE}
@@ -58,15 +66,9 @@ Este tutorial fue escrito con la versión `0.4.1` de **dplyr**.
 
 ```{r, eval=F, echo=FALSE}
 # instalación
-install.packages("dplyr")
+if(!require("dplyr"))
+  install.packages("dplyr")
 ```
-
-
-```{r, message=FALSE}
-# cargamento
-library(dplyr)
-```
-
 
 #### Los datos
 
@@ -77,7 +79,6 @@ El paquete "**tarjetasblack**" contiene dos objetos:
  
 
 ```{r, message=FALSE}
-library(devtools)
 devtools::install_github("splatsh/tarjetasblack")
 library(tarjetasblack)
 ```
@@ -187,7 +188,7 @@ mov <- select(movimientos, nom = nombre, imp =  importe, act = actividad)
 `filter()` permite filtrar los registros. El primer argumento es el nombre del data frame. El segundo y los siguientes son expreciones logicas que serán evaluadas en el contexto del data frame:
 
 ```{r, collapse=TRUE}
-filter(miembros, organisacion %in% c("PSOE", "Partido Popular"))
+filter(miembros, organizacion %in% c("PSOE", "Partido Popular"))
 filter(miembros, grepl("Antonio", nombre))
 filter(movimientos, importe > 10000)
 filter(movimientos, importe > 10000 & hora < 4)
@@ -205,7 +206,7 @@ slice(miembros, 50:55)
 `arrange()` permite sortear los registros por una o varias columnas:
 
 ```{r}
-arrange(miembros, desc(organisacion), nombre)
+arrange(miembros, desc(organizacion), nombre)
 ```
 
 `top_n` es una combinación de sorteo + filtro:
@@ -218,14 +219,14 @@ top_n(miembros, 1) # por defecto, ordena por la ultima columna
 
 > equivalente en SQL: `ORDER BY`
 
-### Agregar y transformar con `group_by`, `summarise()` y `mutate()`
+#### Agregar y transformar con `group_by`, `summarise()` y `mutate()`
 
 `summarise()` agrega los datos por groupos creados por `group_by()`. Si no estan agrupados, agrupa todo en un solo registro.
 
 ```{r, collapse=TRUE}
 summarise(movimientos, max(importe))
 summarise(group_by(mov, nom), max_personal = max(imp))
-summarise(group_by(miembros, organisacion), n())
+summarise(group_by(miembros, organizacion), n())
 ```
 
 `mutate()` es muy similar. La diferencia es que `mutate()` no dismimue el número de filas pero añade columnas con el resultado de la agregación:
@@ -237,7 +238,7 @@ mutate(group_by(mov, nom), total_personal = sum(imp), pp = imp/total_personal)
 
 > equivalente en SQL: `GROUP BY`
 
-## los 'pipes' (tubos)
+### los 'pipes' (tubos)
 
 El operador `%>%` permite encadenar los verbos y escribir un codigo más legible.
 
@@ -327,14 +328,6 @@ movimientos %>%
   top_n(1)
 ```
 
-```{r, echo=F, results='hide'}
-res <- movimientos %>%
-  filter(actividad == "RESTAURANTE") %>%
-  group_by(nombre) %>%
-  summarise(total_gastro = sum(importe)) %>%
-  top_n(1)
-```
-
 #### ¿para cada uno de los 10 miembros más despilfarradores, en que actividad han gastado más? ¿y cuanto?
 Truco: juntar datos con las funciones `left_join`,`right_join`, `semi_join`...
 sintaxis: `left_join(x, y, by = NULL, copy = FALSE, ...)`
@@ -359,17 +352,14 @@ left_join(despilfarradores, movimientos) %>%
 
 Respuesta:
 ```{r}
-# library(tarjetasblack)
-# class(movimientos)
-# class(miembros)
 all <- left_join(tbl_df(movimientos), miembros, by="nombre")
 all <- as.data.table(all)
 
-res <- all %>% filter(!is.na(actividad) & actividad != '' & organisacion %in% c("Izquierda Unida", "Partido Popular", "PSOE", "Partido Popular")) %>%
-  group_by(organisacion, actividad) %>%
+res <- all %>% filter(!is.na(actividad) & actividad != '' & organizacion %in% c("Izquierda Unida", "Partido Popular", "PSOE")) %>%
+  group_by(organizacion, actividad) %>%
   summarise(total = sum(importe))
 
-ggplot(res, aes(x=actividad, y=total, fill=organisacion)) +
+ggplot(res, aes(x=actividad, y=total, fill=organizacion)) +
   geom_bar(stat="identity", position = "fill") + 
   coord_flip()
 ```
@@ -378,11 +368,11 @@ si normalisamos el dinero recibido por partido:
 ```{r}
 res <- res %>%
   filter(total > 50000) %>%
-  group_by(organisacion) %>%
+  group_by(organizacion) %>%
   mutate(total_partido = sum(total))
 
 #to to: normalisar
-ggplot(res, aes(x=actividad, y=total/total_partido, fill=organisacion)) +
+ggplot(res, aes(x=actividad, y=total/total_partido, fill=organizacion)) +
   geom_bar(stat="identity") + 
   coord_flip()
 
@@ -400,7 +390,34 @@ ggplot(res, aes(x=actividad, y=total, fill=funcion)) +
   coord_flip()
 ```
 
-### Rendimiento comparado
+### do()
+
+`do()` permite hacer operaciones por grupos de datos. Estas operaciones pueden devolver dataframes o lista de objetos. Es particularemente util para trabajar con modelos.
+
+#### Tendencia horaria
+
+```{r}
+modelos <- all %>% 
+            filter(organizacion %in% c("Izquierda Unida", "Partido Popular", "PSOE")) %>%
+            mutate(hora_num = hora+minuto/60) %>%
+            group_by(organizacion) %>%
+            do(mod = lm(importe ~ hora_num, data = .))
+modelos
+# extraimos los coeficientes
+modelos %>%
+  rowwise %>%
+  do(data.frame(
+     grupo = .[[1]],
+     var = names(coef(.$mod)),
+     coef(summary(.$mod))
+  ))
+
+```
+
+
+
+
+### Benchmark
 
 #### Aggregación
 
@@ -516,7 +533,7 @@ autoplot(res) + expand_limits(x = 0)
 ```{r, eval=FALSE}
 library(xts)
 library(dygraphs)
-ts <- all %>% group_by(fecha) %>% summarise(total=sum(importe))
+ts <- movimientos_dt %>% group_by(fecha) %>% summarise(total=sum(importe))
 ts <- xts(ts$total, order.by=ts$fecha)
 
 dygraph(ts) %>% 
