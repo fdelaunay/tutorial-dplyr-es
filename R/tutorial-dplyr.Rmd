@@ -39,7 +39,7 @@ Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/d
 Trabajaremos sobre los siguientes datos:
 
  - los movimientos de las tristemente famosas *tarjetas black* de Caja Madrid
- - !!! datos científicos pesados (1Gb)
+ - TO DO: datos científicos pesados (1Gb)
  
 **Requerimientos**: Es necesario un conocimiento básico de R y saber como instalar paquetes.
 
@@ -302,16 +302,16 @@ ggplot(res, aes(x=hora, y=total))+geom_bar(stat="identity")
 
 #### ¿cual son las 10 actividades más frecuentes?
 
-Truco: la función `n()` permite dentro `summarise()`, `mutate()` y `filter()` contar el numéro de registros.
-
 Respuesta:
 ```{r, collapse=TRUE}
-res <-movimientos %>%
+res <- movimientos %>%
   group_by(actividad) %>%
   summarise(n = n()) %>%
   top_n(10)
 
-ggplot(res, aes(x=actividad, y=n)) +
+res$actividad <- reorder(res$actividad, res$n)
+
+ggplot(arrange(res, n), aes(x=actividad, y=n)) +
   geom_bar(stat="identity") + 
   coord_flip()
 ```
@@ -353,7 +353,6 @@ left_join(despilfarradores, movimientos) %>%
 Respuesta:
 ```{r}
 all <- left_join(tbl_df(movimientos), miembros, by="nombre")
-all <- as.data.table(all)
 
 res <- all %>% filter(!is.na(actividad) & actividad != '' & organizacion %in% c("Izquierda Unida", "Partido Popular", "PSOE")) %>%
   group_by(organizacion, actividad) %>%
@@ -414,7 +413,25 @@ modelos %>%
 
 ```
 
+### Windows functions
 
+Estas funciones toman `n` argumentos para devolver `n` valores:
+
+ - __lag__ / __lead__
+ - **min_rank** / **dense_rank** /  **ntiles** / ...
+ - cumulative
+ - rolling (aún no esta implementado, usar `data.table`)
+ 
+#### movimientos separados por menos de 5 minutos de personas diferentes
+
+```{r}
+# añadimos un campo "datetime"
+all$t <- as.POSIXct(as.numeric(all$fecha) + all$hora*60*60 + all$minuto*60, origin="1970-01-01")
+
+all %>% arrange(t) %>%
+  filter(as.numeric(t -lag(t)) < 5*60, nombre != lag(nombre))
+
+```
 
 
 ### Benchmark

@@ -24,7 +24,7 @@ Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/d
 Trabajaremos sobre los siguientes datos:
 
 -   los movimientos de las tristemente famosas *tarjetas black* de Caja Madrid
--   !!! datos científicos pesados (1Gb)
+-   TO DO: datos científicos pesados (1Gb)
 
 **Requerimientos**: Es necesario un conocimiento básico de R y saber como instalar paquetes.
 
@@ -491,18 +491,18 @@ ggplot(res, aes(x=hora, y=total))+geom_bar(stat="identity")
 
 #### ¿cual son las 10 actividades más frecuentes?
 
-Truco: la función `n()` permite dentro `summarise()`, `mutate()` y `filter()` contar el numéro de registros.
-
 Respuesta:
 
 ``` {.r}
-res <-movimientos %>%
+res <- movimientos %>%
   group_by(actividad) %>%
   summarise(n = n()) %>%
   top_n(10)
 ## Selecting by n
 
-ggplot(res, aes(x=actividad, y=n)) +
+res$actividad <- reorder(res$actividad, res$n)
+
+ggplot(arrange(res, n), aes(x=actividad, y=n)) +
   geom_bar(stat="identity") + 
   coord_flip()
 ```
@@ -570,7 +570,6 @@ Respuesta:
 
 ``` {.r}
 all <- left_join(tbl_df(movimientos), miembros, by="nombre")
-all <- as.data.table(all)
 
 res <- all %>% filter(!is.na(actividad) & actividad != '' & organizacion %in% c("Izquierda Unida", "Partido Popular", "PSOE")) %>%
   group_by(organizacion, actividad) %>%
@@ -660,6 +659,42 @@ modelos %>%
     ## 6            PSOE    hora_num  -1.1319605  0.2969374 -3.812119
     ## Variables not shown: Pr...t.. (dbl)
 
+### Windows functions
+
+Estas funciones toman `n` argumentos para devolver `n` valores:
+
+-   **lag** / **lead**
+-   **min\_rank** / **dense\_rank** / **ntiles** / ...
+-   cumulative
+-   rolling (aún no esta implementado, usar `data.table`)
+
+#### movimientos separados por menos de 5 minutos de personas diferentes
+
+``` {.r}
+# añadimos un campo "datetime"
+all$t <- as.POSIXct(as.numeric(all$fecha) + all$hora*60*60 + all$minuto*60, origin="1970-01-01")
+
+all %>% arrange(t) %>%
+  filter(as.numeric(t -lag(t)) < 5*60, nombre != lag(nombre))
+```
+
+    ## Source: local data frame [26,940 x 11]
+    ## 
+    ##                            nombre      fecha hora minuto importe
+    ## 1        Miguel Blesa de la Parra 2003-01-01   11      2   64.25
+    ## 2  Carlos María Martínez Martínez 2003-01-01   11      3  376.00
+    ## 3     Francisco José Moure Bourio 2003-01-01   11     13   48.08
+    ## 4     Ignacio de Navasques Cobián 2003-01-01   11     13   42.00
+    ## 5  Ignacio del Río García de Sola 2003-01-01   11     13   50.00
+    ## 6              José Acosta Cubero 2003-01-01   11     13   94.78
+    ## 7             Pedro Bugidos Garay 2003-01-01   11     13   34.80
+    ## 8                Rubén Cruz Orive 2003-01-01   11     13  110.00
+    ## 9                Rubén Cruz Orive 2003-01-01   11     13  148.00
+    ## 10               Rubén Cruz Orive 2003-01-01   11     13   75.26
+    ## ..                            ...        ...  ...    ...     ...
+    ## Variables not shown: comercio (chr), actividad_completa (chr), actividad
+    ##   (fctr), funcion (fctr), organizacion (fctr), t (time)
+
 ### Benchmark
 
 #### Aggregación
@@ -684,7 +719,7 @@ bch1 <- microbenchmark(
 autoplot(bch1)
 ```
 
-![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-26-1.png)
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-27-1.png)
 
 #### Filtrage
 
@@ -698,7 +733,7 @@ res1 <- microbenchmark(
 plot(res)
 ```
 
-![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-27-1.png)
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-28-1.png)
 
 Nota: el orden tiene importancía:
 
@@ -765,15 +800,15 @@ res
 
     ## Unit: milliseconds
     ##   expr  min   lq mean median   uq  max neval
-    ##     dt  306  307  311    309  309  326    10
-    ##  dplyr  544  548 1084    779  998 3817    10
-    ##   base 1729 1737 2008   1744 2503 2890    10
+    ##     dt  304  306  337    331  358  410    10
+    ##  dplyr  607  768 1382    945 1570 4199    10
+    ##   base 1727 1748 2059   1798 2475 3040    10
 
 ``` {.r}
 autoplot(res) + expand_limits(x = 0)
 ```
 
-![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-30-1.png)
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-31-1.png)
 
 ### Misc
 
