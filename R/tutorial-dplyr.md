@@ -47,18 +47,6 @@ Tutoriales en inglés:
 
 Este tutorial fue escrito con la versión `0.4.1` de **dplyr**.
 
-    ## Loading required package: dplyr
-    ## 
-    ## Attaching package: 'dplyr'
-    ## 
-    ## The following object is masked from 'package:stats':
-    ## 
-    ##     filter
-    ## 
-    ## The following objects are masked from 'package:base':
-    ## 
-    ##     intersect, setdiff, setequal, union
-
 #### Los datos
 
 El paquete "**tarjetasblack**" contiene dos objetos:
@@ -147,12 +135,13 @@ glimpse(miembros) # parecido a str()
 
 Pro:
 
--   beneficiamos de la alta rapidez de las **data tables**
+-   *a priori* beneficiamos de la alta rapidez de las **data tables**
 -   la sintaxis es mucho más simple que con el operador `[`
 
 Contra:
 
--   para operaciones multiples (por ejemplo seleción + nueva variable), usar directamente las **data.table**s pueden ser más eficazes
+-   para operaciones multiples (por ejemplo seleción + nueva variable), usar directamente las **data.table**s pueden ser más eficazes.
+-   si buscamos rapidez pura, usaremos **data tables**
 
 Convertimos los movimientos (77207 observaciones) en un objeto data table:
 
@@ -175,7 +164,7 @@ Convertimos los movimientos (77207 observaciones) en un objeto data table:
 
 Más información [aquí](http://cran.r-project.org/web/packages/dplyr/vignettes/databases.html) (inglés).
 
-### Los verbos (sobre una tabla)
+### Los verbos
 
 > "En el principio existía el Verbo"
 
@@ -613,6 +602,40 @@ ggplot(res, aes(x=actividad, y=total, fill=funcion)) +
 
 ![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-24-1.png)
 
+#### mapa del gasto por dia de la semana y persona
+
+``` {.r}
+despilfarradores <- movimientos %>%
+  group_by(nombre) %>%
+  mutate(total = sum(importe)) %>%
+  filter(dense_rank(-total) < 10)
+
+res <- ungroup(despilfarradores) %>%
+  group_by(nombre, dia = strftime(fecha, format = "%w-%a")) %>%
+  summarise(gasto = sum(importe)) 
+summary(res)
+```
+
+    ##                            nombre       dia                gasto       
+    ##  Enrique de la Torre Martínez : 7   Length:63          Min.   :  3924  
+    ##  Ildefonso José Sánchez Barcoj: 7   Class :character   1st Qu.: 35660  
+    ##  José Antonio Moral Santín    : 7   Mode  :character   Median : 57848  
+    ##  Juan Manuel Astorqui Portera : 7                      Mean   : 57966  
+    ##  Mariano Pérez Claver         : 7                      3rd Qu.: 75001  
+    ##  Matías Amat Roca             : 7                      Max.   :117559  
+    ##  (Other)                      :21
+
+``` {.r}
+myPalette <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")), space="Lab")
+
+ggplot(data = res, aes(x = nombre, y = dia, fill = gasto)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = myPalette(100)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-25-1.png)
+
 ### do()
 
 `do()` permite hacer operaciones por grupos de datos. Estas operaciones pueden devolver dataframes o lista de objetos. Es particularemente util para trabajar con modelos.
@@ -719,7 +742,7 @@ bch1 <- microbenchmark(
 autoplot(bch1)
 ```
 
-![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-27-1.png)
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-28-1.png)
 
 #### Filtrage
 
@@ -730,10 +753,10 @@ res1 <- microbenchmark(
   dplyr_dt = movimientos_dt %>% group_by(nombre) %>% filter(importe == max(importe)),
   times = 5
 )
-plot(res)
+plot(res1)
 ```
 
-![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-28-1.png)
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-29-1.png)
 
 Nota: el orden tiene importancía:
 
@@ -800,15 +823,15 @@ res
 
     ## Unit: milliseconds
     ##   expr  min   lq mean median   uq  max neval
-    ##     dt  304  306  337    331  358  410    10
-    ##  dplyr  607  768 1382    945 1570 4199    10
-    ##   base 1727 1748 2059   1798 2475 3040    10
+    ##     dt  300  300  311    301  322  341    10
+    ##  dplyr  534  558 1181    791 1366 4019    10
+    ##   base 1766 1772 1982   1795 1827 3000    10
 
 ``` {.r}
 autoplot(res) + expand_limits(x = 0)
 ```
 
-![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-31-1.png)
+![](tutorial-dplyr_files/figure-markdown_github/unnamed-chunk-32-1.png)
 
 ### Misc
 

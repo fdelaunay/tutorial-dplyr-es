@@ -495,7 +495,7 @@ res1 <- microbenchmark(
   dplyr_dt = movimientos_dt %>% group_by(nombre) %>% filter(importe == max(importe)),
   times = 5
 )
-plot(res)
+plot(res1)
 
 ```
 
