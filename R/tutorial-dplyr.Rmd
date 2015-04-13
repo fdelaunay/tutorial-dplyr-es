@@ -64,7 +64,7 @@ Tutoriales en inglés:
 
 Este tutorial fue escrito con la versión `0.4.1` de **dplyr**.
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 # instalación
 if(!require("dplyr"))
   install.packages("dplyr")
@@ -116,12 +116,13 @@ glimpse(miembros) # parecido a str()
 
 Pro:
 
- + beneficiamos de la alta rapidez de las __data tables__
+ + *a priori* beneficiamos de la alta rapidez de las __data tables__
  + la sintaxis es mucho más simple que con el operador `[`
  
 Contra:
 
- - para operaciones multiples (por ejemplo seleción + nueva variable), usar directamente las **data.table**s pueden ser más eficazes
+ - para operaciones multiples (por ejemplo seleción + nueva variable), usar directamente las **data.table**s pueden ser más eficazes.
+ - si buscamos rapidez pura, usaremos __data tables__
 
 Convertimos los movimientos (77207 observaciones) en un objeto data table: 
 
@@ -143,7 +144,7 @@ movimientos <- tbl_dt(movimientos)
 
 Más información [aquí](http://cran.r-project.org/web/packages/dplyr/vignettes/databases.html) (inglés).
 
-### Los verbos (sobre una tabla)
+### Los verbos
 
 > "En el principio existía el Verbo"
 
@@ -388,6 +389,31 @@ ggplot(res, aes(x=actividad, y=total, fill=funcion)) +
   geom_bar(stat="identity", position = "fill") + 
   coord_flip()
 ```
+
+
+#### mapa del gasto por dia de la semana y persona
+
+```{r}
+despilfarradores <- movimientos %>%
+  group_by(nombre) %>%
+  mutate(total = sum(importe)) %>%
+  filter(dense_rank(-total) < 10)
+
+res <- ungroup(despilfarradores) %>%
+  group_by(nombre, dia = strftime(fecha, format = "%w-%a")) %>%
+  summarise(gasto = sum(importe)) 
+summary(res)
+
+myPalette <- colorRampPalette(rev(RColorBrewer::brewer.pal(11, "Spectral")), space="Lab")
+
+ggplot(data = res, aes(x = nombre, y = dia, fill = gasto)) +
+  geom_tile() +
+  scale_fill_gradientn(colours = myPalette(100)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+
 
 ### do()
 
