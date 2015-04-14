@@ -39,7 +39,9 @@ Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/d
 Trabajaremos sobre los siguientes datos:
 
  - los movimientos de las tristemente famosas *tarjetas black* de Caja Madrid
- - TO DO: datos científicos pesados (1Gb)
+
+![rato](images/aprende.jpg)
+
  
 **Requerimientos**: Es necesario un conocimiento básico de R y saber como instalar paquetes.
 

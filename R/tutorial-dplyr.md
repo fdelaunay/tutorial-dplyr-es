@@ -24,7 +24,8 @@ Como lo presenta su autor, Hadley Wickham, **[dplyr](https://github.com/hadley/d
 Trabajaremos sobre los siguientes datos:
 
 -   los movimientos de las tristemente famosas *tarjetas black* de Caja Madrid
--   TO DO: datos científicos pesados (1Gb)
+
+![rato](images/aprende.jpg)
 
 **Requerimientos**: Es necesario un conocimiento básico de R y saber como instalar paquetes.
 
@@ -823,9 +824,9 @@ res
 
     ## Unit: milliseconds
     ##   expr  min   lq mean median   uq  max neval
-    ##     dt  300  300  311    301  322  341    10
-    ##  dplyr  534  558 1181    791 1366 4019    10
-    ##   base 1766 1772 1982   1795 1827 3000    10
+    ##     dt  303  308  390    309  319 1105    10
+    ##  dplyr  539  627 1222    926 1374 3773    10
+    ##   base 1691 1702 1970   1719 2447 2826    10
 
 ``` {.r}
 autoplot(res) + expand_limits(x = 0)
