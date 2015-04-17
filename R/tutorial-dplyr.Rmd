@@ -281,13 +281,21 @@ movimientos %>%
 
 #### ¿cual es el import maximo por miembros?
 
-Respuesta:
+Dos maneras. O via un `summarize`:
 ```{r}
 movimientos %>% 
   group_by(nombre) %>%
   summarize(gasto_max = max(importe))
 ```
 
+O usando `filter`:
+```{r}
+movimientos %>% 
+  group_by(nombre) %>%
+  filter(importe == max(importe))
+```
+
+En este 2º metodo, si hay dos gastos iguales que son los gatos maximos, salen los dos.
 
 #### ¿cual es el perfil horario de las compras?
 

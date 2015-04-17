@@ -104,10 +104,10 @@
      fit-margin-left="0"
      fit-margin-right="0"
      fit-margin-bottom="0"
-     inkscape:window-width="1680"
-     inkscape:window-height="997"
-     inkscape:window-x="0"
-     inkscape:window-y="26"
+     inkscape:window-width="1600"
+     inkscape:window-height="1148"
+     inkscape:window-x="1592"
+     inkscape:window-y="-8"
      inkscape:window-maximized="1" />
   <metadata
      id="metadata7">
@@ -117,7 +117,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -176,7 +176,7 @@
          y="500.41397"
          x="419.92047"
          id="tspan3775"
-         sodipodi:role="line">``que no digan que eso no</tspan><tspan
+         sodipodi:role="line">``que no digan que no</tspan><tspan
          style="font-size:37.85636902px;font-style:italic;font-variant:normal;font-weight:normal;font-stretch:condensed;text-align:center;line-height:89.99999762%;writing-mode:lr-tb;text-anchor:middle;fill:#d3e991;fill-opacity:1;stroke:#150b0f;stroke-width:0.94640917;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;font-family:Roboto Condensed;-inkscape-font-specification:'Roboto Condensed, Italic Condensed'"
          y="534.48468"
          x="419.92047"
